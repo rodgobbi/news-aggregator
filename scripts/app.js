@@ -35,7 +35,7 @@ APP.Main = (function() {
   var tmplStory = document.querySelector('#tmpl-story').textContent;
   var tmplStoryDetails = document.querySelector('#tmpl-story-details').textContent;
   var tmplStoryDetailsComment = document.querySelector('#tmpl-story-details-comment').textContent;
-
+  var storyDetails = null;
   if (typeof HandlebarsIntl !== 'undefined') {
     HandlebarsIntl.registerWith(Handlebars);
   } else {
@@ -89,70 +89,68 @@ APP.Main = (function() {
   }
 
   function onStoryClick(details) {
-
-    var storyDetails = document.querySelector('sd-' + details.id);
-
-    // Wait a little time then show the story details.
-
     requestAnimationFrame(() => {
-      if (!storyDetails) {
 
-        if (details.url)
-          details.urlobj = new URL(details.url);
-  
-        var comment;
-        var commentsElement;
-        var storyHeader;
-        var storyContent;
-  
-        var storyDetailsHtml = storyDetailsTemplate(details);
-        var kids = details.kids;
-        var commentHtml = storyDetailsCommentTemplate({
-          by: '', text: 'Loading comment...'
-        });
-  
+      if (!storyDetails) {
         storyDetails = document.createElement('section');
-        storyDetails.setAttribute('id', 'sd-' + details.id);
         storyDetails.classList.add('story-details');
         storyDetails.style.transform = 'translate3d(100%, 0, 0)';
-        storyDetails.innerHTML = storyDetailsHtml;
-  
-        document.body.appendChild(storyDetails);
-  
-        commentsElement = storyDetails.querySelector('.js-comments');
-        storyHeader = storyDetails.querySelector('.js-header');
-        storyContent = storyDetails.querySelector('.js-content');
-  
-        var closeButton = storyDetails.querySelector('.js-close');
-        closeButton.addEventListener('click', hideStory.bind(this, details.id));
-  
-        var headerHeight = storyHeader.getBoundingClientRect().height;
-        storyContent.style.paddingTop = headerHeight + 'px';
-  
-        if (typeof kids === 'undefined')
-          return;
-  
-        for (var k = 0; k < kids.length; k++) {
-  
-          comment = document.createElement('aside');
-          comment.setAttribute('id', 'sdc-' + kids[k]);
-          comment.classList.add('story-details__comment');
-          comment.innerHTML = commentHtml;
-          commentsElement.appendChild(comment);
-  
-          // Update the comment with the live data.
-          APP.Data.getStoryComment(kids[k], function(commentDetails) {
-  
-            commentDetails.time *= 1000;
-  
-            var comment = commentsElement.querySelector(
-                '#sdc-' + commentDetails.id);
-            comment.innerHTML = storyDetailsCommentTemplate(
-                commentDetails,
-                localeData);
-          });
-        }
       }
+      storyDetails.setAttribute('id', 'sd-' + details.id);
+      
+
+      if (details.url)
+        details.urlobj = new URL(details.url);
+
+      var comment;
+      var commentsElement;
+      var storyHeader;
+      var storyContent;
+
+      var storyDetailsHtml = storyDetailsTemplate(details);
+      var kids = details.kids;
+      var commentHtml = storyDetailsCommentTemplate({
+        by: '', text: 'Loading comment...'
+      });
+
+      storyDetails.innerHTML = storyDetailsHtml;
+
+      document.body.appendChild(storyDetails);
+
+      commentsElement = storyDetails.querySelector('.js-comments');
+      storyHeader = storyDetails.querySelector('.js-header');
+      storyContent = storyDetails.querySelector('.js-content');
+
+      var closeButton = storyDetails.querySelector('.js-close');
+      closeButton.addEventListener('click', hideStory.bind(this, details.id));
+
+      var headerHeight = storyHeader.getBoundingClientRect().height;
+      storyContent.style.paddingTop = headerHeight + 'px';
+
+      if (typeof kids === 'undefined')
+        return;
+
+      for (var k = 0; k < kids.length; k++) {
+
+        comment = document.createElement('aside');
+        comment.setAttribute('id', 'sdc-' + kids[k]);
+        comment.classList.add('story-details__comment');
+        comment.innerHTML = commentHtml;
+        commentsElement.appendChild(comment);
+
+        // Update the comment with the live data.
+        APP.Data.getStoryComment(kids[k], function(commentDetails) {
+
+          commentDetails.time *= 1000;
+
+          var comment = commentsElement.querySelector(
+              '#sdc-' + commentDetails.id);
+          comment.innerHTML = storyDetailsCommentTemplate(
+              commentDetails,
+              localeData);
+        });
+      }
+      
       showStory(details.id);
     });    
   }
@@ -162,13 +160,10 @@ APP.Main = (function() {
     if (inDetails)
       return;
 
-    inDetails = true;
-
-    var storyDetails = document.querySelector('#sd-' + id);
-
     if (!storyDetails)
       return;
-    
+
+    inDetails = true;    
       
     var storyElements = document.querySelectorAll('.story');
     let storyElementsWithNewStyle = [];
@@ -193,25 +188,16 @@ APP.Main = (function() {
   }
 
   function hideStory(id) {
-
-    if (!inDetails)
-      return;
-    
-    inDetails = false;
-
     requestAnimationFrame(() => {
-      var storyDetails = document.querySelector('#sd-' + id);
+      if (!inDetails)
+        return;
+      
+      inDetails = false;
         
       var storyElements = document.querySelectorAll('.story');
-      let storyElementsWithNewStyle = [];
+      // Remove the class from every element because if the user changes the view port while the
+      // details dialog is active, some story items can get details-active modifier stuck in their classList
       storyElements.forEach(story => {
-        const bodyHeight = document.body.getBoundingClientRect().height;
-        // out of the view, don't need any visual change
-        if (story.getBoundingClientRect().bottom < 0 || story.getBoundingClientRect().top > bodyHeight)
-          return;
-        storyElementsWithNewStyle.push(story);
-      });
-      storyElementsWithNewStyle.forEach(story => {
         story.classList.remove('story--details-active')
         var title = story.querySelector('.story__title').classList.remove('story__title--details-active');
         var by = story.querySelector('.story__by').classList.remove('story__by--details-active');
