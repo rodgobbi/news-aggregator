@@ -93,71 +93,68 @@ APP.Main = (function() {
     var storyDetails = document.querySelector('sd-' + details.id);
 
     // Wait a little time then show the story details.
-    setTimeout(showStory.bind(this, details.id), 60);
 
-    // Create and append the story. A visual change...
-    // perhaps that should be in a requestAnimationFrame?
-    // And maybe, since they're all the same, I don't
-    // need to make a new element every single time? I mean,
-    // it inflates the DOM and I can only see one at once.
-    if (!storyDetails) {
+    requestAnimationFrame(() => {
+      if (!storyDetails) {
 
-      if (details.url)
-        details.urlobj = new URL(details.url);
-
-      var comment;
-      var commentsElement;
-      var storyHeader;
-      var storyContent;
-
-      var storyDetailsHtml = storyDetailsTemplate(details);
-      var kids = details.kids;
-      var commentHtml = storyDetailsCommentTemplate({
-        by: '', text: 'Loading comment...'
-      });
-
-      storyDetails = document.createElement('section');
-      storyDetails.setAttribute('id', 'sd-' + details.id);
-      storyDetails.classList.add('story-details');
-      storyDetails.innerHTML = storyDetailsHtml;
-
-      document.body.appendChild(storyDetails);
-
-      commentsElement = storyDetails.querySelector('.js-comments');
-      storyHeader = storyDetails.querySelector('.js-header');
-      storyContent = storyDetails.querySelector('.js-content');
-
-      var closeButton = storyDetails.querySelector('.js-close');
-      closeButton.addEventListener('click', hideStory.bind(this, details.id));
-
-      var headerHeight = storyHeader.getBoundingClientRect().height;
-      storyContent.style.paddingTop = headerHeight + 'px';
-
-      if (typeof kids === 'undefined')
-        return;
-
-      for (var k = 0; k < kids.length; k++) {
-
-        comment = document.createElement('aside');
-        comment.setAttribute('id', 'sdc-' + kids[k]);
-        comment.classList.add('story-details__comment');
-        comment.innerHTML = commentHtml;
-        commentsElement.appendChild(comment);
-
-        // Update the comment with the live data.
-        APP.Data.getStoryComment(kids[k], function(commentDetails) {
-
-          commentDetails.time *= 1000;
-
-          var comment = commentsElement.querySelector(
-              '#sdc-' + commentDetails.id);
-          comment.innerHTML = storyDetailsCommentTemplate(
-              commentDetails,
-              localeData);
+        if (details.url)
+          details.urlobj = new URL(details.url);
+  
+        var comment;
+        var commentsElement;
+        var storyHeader;
+        var storyContent;
+  
+        var storyDetailsHtml = storyDetailsTemplate(details);
+        var kids = details.kids;
+        var commentHtml = storyDetailsCommentTemplate({
+          by: '', text: 'Loading comment...'
         });
+  
+        storyDetails = document.createElement('section');
+        storyDetails.setAttribute('id', 'sd-' + details.id);
+        storyDetails.classList.add('story-details');
+        storyDetails.style.transform = 'translate3d(100%, 0, 0)';
+        storyDetails.innerHTML = storyDetailsHtml;
+  
+        document.body.appendChild(storyDetails);
+  
+        commentsElement = storyDetails.querySelector('.js-comments');
+        storyHeader = storyDetails.querySelector('.js-header');
+        storyContent = storyDetails.querySelector('.js-content');
+  
+        var closeButton = storyDetails.querySelector('.js-close');
+        closeButton.addEventListener('click', hideStory.bind(this, details.id));
+  
+        var headerHeight = storyHeader.getBoundingClientRect().height;
+        storyContent.style.paddingTop = headerHeight + 'px';
+  
+        if (typeof kids === 'undefined')
+          return;
+  
+        for (var k = 0; k < kids.length; k++) {
+  
+          comment = document.createElement('aside');
+          comment.setAttribute('id', 'sdc-' + kids[k]);
+          comment.classList.add('story-details__comment');
+          comment.innerHTML = commentHtml;
+          commentsElement.appendChild(comment);
+  
+          // Update the comment with the live data.
+          APP.Data.getStoryComment(kids[k], function(commentDetails) {
+  
+            commentDetails.time *= 1000;
+  
+            var comment = commentsElement.querySelector(
+                '#sdc-' + commentDetails.id);
+            comment.innerHTML = storyDetailsCommentTemplate(
+                commentDetails,
+                localeData);
+          });
+        }
       }
-    }
-
+      showStory(details.id);
+    });    
   }
 
   function showStory(id) {
@@ -168,83 +165,63 @@ APP.Main = (function() {
     inDetails = true;
 
     var storyDetails = document.querySelector('#sd-' + id);
-    var left = null;
 
     if (!storyDetails)
       return;
-
-    document.body.classList.add('details-active');
+    
+      
+    var storyElements = document.querySelectorAll('.story');
+    let storyElementsWithNewStyle = [];
+    storyElements.forEach(story => {
+      const bodyHeight = document.body.getBoundingClientRect().height;
+      // out of the view, don't need any visual change
+      if (story.getBoundingClientRect().bottom < 0 || story.getBoundingClientRect().top > bodyHeight)
+        return;
+      storyElementsWithNewStyle.push(story);
+    });
+    storyElementsWithNewStyle.forEach(story => {
+      story.classList.add('score--details-active')
+      var title = story.querySelector('.story__title').classList.add('story__title--details-active');
+      var by = story.querySelector('.story__by').classList.add('story__by--details-active');
+      var score = story.querySelector('.story__score').classList.add('story__score--details-active');
+    });
     storyDetails.style.opacity = 1;
 
-    function animate () {
-
-      // Find out where it currently is.
-      var storyDetailsPosition = storyDetails.getBoundingClientRect();
-
-      // Set the left value if we don't have one already.
-      if (left === null)
-        left = storyDetailsPosition.left;
-
-      // Now figure out where it needs to go.
-      left += (0 - storyDetailsPosition.left) * 0.1;
-
-      // Set up the next bit of the animation if there is more to do.
-      if (Math.abs(left) > 0.5)
-        setTimeout(animate, 4);
-      else
-        left = 0;
-
-      // And update the styles. Wait, is this a read-write cycle?
-      // I hope I don't trigger a forced synchronous layout!
-      storyDetails.style.left = left + 'px';
-    }
-
-    // We want slick, right, so let's do a setTimeout
-    // every few milliseconds. That's going to keep
-    // it all tight. Or maybe we're doing visual changes
-    // and they should be in a requestAnimationFrame
-    setTimeout(animate, 4);
+    requestAnimationFrame(() => {
+      storyDetails.style.transform = 'translate3d(0, 0, 0)';
+    });
   }
 
   function hideStory(id) {
 
     if (!inDetails)
       return;
+    
+    inDetails = false;
 
-    var storyDetails = document.querySelector('#sd-' + id);
-    var left = 0;
+    requestAnimationFrame(() => {
+      var storyDetails = document.querySelector('#sd-' + id);
+        
+      var storyElements = document.querySelectorAll('.story');
+      let storyElementsWithNewStyle = [];
+      storyElements.forEach(story => {
+        const bodyHeight = document.body.getBoundingClientRect().height;
+        // out of the view, don't need any visual change
+        if (story.getBoundingClientRect().bottom < 0 || story.getBoundingClientRect().top > bodyHeight)
+          return;
+        storyElementsWithNewStyle.push(story);
+      });
+      storyElementsWithNewStyle.forEach(story => {
+        story.classList.remove('story--details-active')
+        var title = story.querySelector('.story__title').classList.remove('story__title--details-active');
+        var by = story.querySelector('.story__by').classList.remove('story__by--details-active');
+        var score = story.querySelector('.story__score').classList.remove('story__score--details-active');
+      });
 
-    document.body.classList.remove('details-active');
-    storyDetails.style.opacity = 0;
+      storyDetails.style.opacity = 0;
+      storyDetails.style.transform = 'translate3d(100%, 0, 0)';
+    });
 
-    function animate () {
-
-      // Find out where it currently is.
-      var mainPosition = main.getBoundingClientRect();
-      var storyDetailsPosition = storyDetails.getBoundingClientRect();
-      var target = mainPosition.width + 100;
-
-      // Now figure out where it needs to go.
-      left += (target - storyDetailsPosition.left) * 0.1;
-
-      // Set up the next bit of the animation if there is more to do.
-      if (Math.abs(left - target) > 0.5) {
-        setTimeout(animate, 4);
-      } else {
-        left = target;
-        inDetails = false;
-      }
-
-      // And update the styles. Wait, is this a read-write cycle?
-      // I hope I don't trigger a forced synchronous layout!
-      storyDetails.style.left = left + 'px';
-    }
-
-    // We want slick, right, so let's do a setTimeout
-    // every few milliseconds. That's going to keep
-    // it all tight. Or maybe we're doing visual changes
-    // and they should be in a requestAnimationFrame
-    setTimeout(animate, 4);
   }
 
   /**
@@ -258,12 +235,12 @@ APP.Main = (function() {
 
     // Calculate style changes before changing any element to avoid style invalidation
     storyElements.forEach(story => {
-      var score = story.querySelector('.story__score');
       const bodyHeight = document.body.getBoundingClientRect().height;
       // out of the view, don't need any visual change
-      if (score.getBoundingClientRect().bottom < 0 || score.getBoundingClientRect().top > bodyHeight)
+      if (story.getBoundingClientRect().bottom < 0 || story.getBoundingClientRect().top > bodyHeight)
         return;
 
+      var score = story.querySelector('.story__score');
       var title = story.querySelector('.story__title');
 
       // Base the scale on the y position of the score.
