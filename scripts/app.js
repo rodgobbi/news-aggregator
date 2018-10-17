@@ -254,11 +254,16 @@ APP.Main = (function() {
   function colorizeAndScaleStories() {
 
     var storyElements = document.querySelectorAll('.story');
-    let storyElementsNewStyle = []
+    let storyElementsWithNewStyle = []
 
     // Calculate style changes before changing any element to avoid style invalidation
     storyElements.forEach(story => {
       var score = story.querySelector('.story__score');
+      const bodyHeight = document.body.getBoundingClientRect().height;
+      // out of the view, don't need any visual change
+      if (score.getBoundingClientRect().bottom < 0 || score.getBoundingClientRect().top > bodyHeight)
+        return;
+
       var title = story.querySelector('.story__title');
 
       // Base the scale on the y position of the score.
@@ -273,31 +278,19 @@ APP.Main = (function() {
       scoreLocation = score.getBoundingClientRect();
       var saturation = (100 * ((scoreLocation.width - 38) / 2));
 
-      storyElementsNewStyle.push({ scale, saturation, opacity })
+      storyElementsWithNewStyle.push({ elem: story, scale, saturation, opacity })
     });
     // Apply all batched changes for better performance
-    storyElements.forEach((story, index) => {
-      const { scale, saturation, opacity } = storyElementsNewStyle[index];
-      var score = story.querySelector('.story__score');
-      var title = story.querySelector('.story__title');
-      score.style.width = (scale * 40) + 'px';
-      score.style.height = (scale * 40) + 'px';
-      score.style.lineHeight = (scale * 40) + 'px';
+    storyElementsWithNewStyle.forEach((story, index) => {
+      const { elem, scale, saturation, opacity } = story;
+      var score = elem.querySelector('.story__score');
+      var title = elem.querySelector('.story__title');
+      score.style.transform = `scale(${scale})`;      
       score.style.backgroundColor = 'hsl(42, ' + saturation + '%, 50%)';
       title.style.opacity = opacity;
-
     });
   }
 
-  main.addEventListener('touchstart', function(evt) {
-
-    // I just wanted to test what happens if touchstart
-    // gets canceled. Hope it doesn't block scrolling on mobiles...
-    if (Math.random() > 0.97) {
-      evt.preventDefault();
-    }
-
-  });
 
   main.addEventListener('scroll', function() {
     requestAnimationFrame(() => {
